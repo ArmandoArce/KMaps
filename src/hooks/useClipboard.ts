@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 function useClipboard() {
-    const [isCopied, setIsCopied] = useState(false);
+    const [isCopied, setIsCopied] = useState<boolean>(false);
     const location = useLocation();
 
-    const copyToClipboard = async (text) => {
+    const copyToClipboard = async (text: string): Promise<void> => {
         if ('clipboard' in navigator) {
             await navigator.clipboard.writeText(text);
             setIsCopied(true);
@@ -27,7 +27,7 @@ function useClipboard() {
         }
     };
 
-    const generateShareUrl = (latitude, longitude) => {
+    const generateShareUrl = (latitude: number, longitude: number): string => {
         const baseUrl = `${window.location.protocol}//${window.location.host}${location.pathname}`;
         return `${baseUrl}?lat=${latitude}&lng=${longitude}`;
     };

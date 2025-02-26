@@ -1,11 +1,24 @@
 import { useState } from 'react';
 
-function useForm(initialValues, validate) {
-    const [values, setValues] = useState(initialValues);
-    const [errors, setErrors] = useState({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
+interface FormValues {
+    [key: string]: string;
+}
 
-    const handleChange = (event) => {
+interface FormErrors {
+    [key: string]: string;
+}
+
+interface UseFormProps {
+    initialValues: FormValues;
+    validate: (values: FormValues) => FormErrors;
+}
+
+function useForm({ initialValues, validate }: UseFormProps) {
+    const [values, setValues] = useState<FormValues>(initialValues);
+    const [errors, setErrors] = useState<FormErrors>({});
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
         setValues({
             ...values,
@@ -13,7 +26,7 @@ function useForm(initialValues, validate) {
         });
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setErrors(validate(values));
         setIsSubmitting(true);
