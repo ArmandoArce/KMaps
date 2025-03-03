@@ -1,11 +1,15 @@
 import { useState } from 'react';
 
 interface FormValues {
-    [key: string]: string;
+    name: string;
+    latitude: string;
+    longitude: string;
 }
 
 interface FormErrors {
-    [key: string]: string;
+    name?: string;
+    latitude?: string;
+    longitude?: string;
 }
 
 interface UseFormProps {

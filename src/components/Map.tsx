@@ -2,10 +2,13 @@ import React, { useEffect, useRef } from 'react';
 
 interface MapProps {
     locations: {
+        id: string;
         name: string;
         latitude: number;
         longitude: number;
     }[];
+    onMarkerClick: (id: string) => void;
+    onMapClick: (lat: number, lng: number) => void;
 }
 
 declare global {
@@ -14,8 +17,9 @@ declare global {
     }
 }
 
-const Map: React.FC<MapProps> = ({ locations }) => {
+const Map: React.FC<MapProps> = ({ locations, onMarkerClick, onMapClick }) => {
     const mapRef = useRef<HTMLDivElement>(null);
+    const mapInstance = useRef<any>(null);
 
     useEffect(() => {
         const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -38,13 +42,13 @@ const Map: React.FC<MapProps> = ({ locations }) => {
                         zoom: 10,
                     });
 
-                    locations.forEach((location) => {
-                        new window.google.maps.Marker({
-                            position: { lat: location.latitude, lng: location.longitude },
-                            map: map,
-                            title: location.name,
-                        });
+                    mapInstance.current = map;
+
+                    map.addListener('click', (event: any) => {
+                        onMapClick(event.latLng.lat(), event.latLng.lng());
                     });
+
+                    updateMarkers(); 
                 }
             };
         } else if (typeof window.google === 'object' && typeof window.google.maps === 'object') {
@@ -52,7 +56,34 @@ const Map: React.FC<MapProps> = ({ locations }) => {
         }
 
         return () => {};
+    }, [onMarkerClick, onMapClick]);
+
+    useEffect(() => {
+        updateMarkers();
     }, [locations]);
+
+    const updateMarkers = () => {
+        if (mapInstance.current) {
+           
+            mapInstance.current.markers?.forEach((marker: any) => marker.setMap(null));
+            mapInstance.current.markers = [];
+    
+           
+            locations.forEach((location) => {
+                const marker = new window.google.maps.Marker({
+                    position: { lat: location.latitude, lng: location.longitude },
+                    map: mapInstance.current,
+                    title: location.name,
+                });
+    
+                marker.addListener('click', () => {
+                    onMarkerClick(location.id);
+                });
+    
+                mapInstance.current.markers.push(marker);
+            });
+        }
+    };
 
     return <div ref={mapRef} style={{ width: "100%", height: "400px" }} />;
 };
