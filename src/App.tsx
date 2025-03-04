@@ -10,6 +10,9 @@ import { v4 as uuidv4 } from 'uuid';
 import './styles.css';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import { Navigation, Pagination } from 'swiper/modules';
 
 interface Location {
   id: string;
@@ -36,6 +39,7 @@ interface FormValues {
   longitude: string;
   type: string;
   description: string;
+  rating: string;
 }
 
 const App: React.FC = () => {
@@ -51,7 +55,8 @@ const App: React.FC = () => {
     latitude: '',
     longitude: '',
     type: 'Trails',
-    description: ''
+    description: '',
+    rating: ''
   };
   const {
     handleChange,
@@ -78,6 +83,11 @@ const App: React.FC = () => {
         errors.longitude = 'Longitude must be between -180 and 180';
       }
 
+      const rating = parseFloat(values.rating);
+      if (isNaN(rating) || rating < 10 || rating > 0) {
+        errors.rating = 'Rating must be between 0 and 10';
+      }
+
       return errors;
     }
   });
@@ -85,7 +95,7 @@ const App: React.FC = () => {
   useDocumentTitle(title);
 
   const sampleHikingData: HikingPlace[] = [
-    {
+    /*{
       id: '1',
       name: 'Arenal Volcano National Park',
       latitude: 10.4626,
@@ -125,7 +135,7 @@ const App: React.FC = () => {
       rating: 7,
       type: 'Camping'
     },
-      {
+    {
       id: '4',
       name: 'La Paz Waterfall Gardens',
       latitude: 10.1554,
@@ -137,26 +147,18 @@ const App: React.FC = () => {
       ],
       rating: 6,
       type: 'Waterfalls'
-    }
+    }*/
   ];
 
   useEffect(() => {
-    let initialLocations: Location[] = [];
-
-    if (favoriteLocations && favoriteLocations.length > 0) {
-      initialLocations = favoriteLocations;
-    }
-
-    sampleHikingData.forEach(place => {
-      if (!initialLocations.some(loc => loc.id === place.id)) {
-        initialLocations.push({
-          ...place,
-          isFavorite: false
-        });
-      }
+    setLocations((prevLocations) => {
+      let initialLocations = [...prevLocations];
+      const nonFavoriteLocations = prevLocations.filter(
+        (loc) => !favoriteLocations.some((fav) => fav.id === loc.id)
+      );
+      return [...favoriteLocations, ...nonFavoriteLocations];
     });
-
-    setLocations(initialLocations);
+    console.log(locations)
   }, [favoriteLocations]);
 
   const filteredLocations = locations.filter(place => {
@@ -218,10 +220,21 @@ const App: React.FC = () => {
   const [tempImageUrl, setTempImageUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
-  const handleAddImage = () => {
-    if (tempImageUrl.trim()) {
-      setImageUrls([...imageUrls, tempImageUrl.trim()]);
-      setTempImageUrl('');
+  const handleAddImage = async () => {
+    const imageUrl = tempImageUrl.trim();
+
+    if (imageUrl) {
+      try {
+        const response = await fetch(imageUrl, { method: 'HEAD' });
+        if (response.ok && response.headers.get('Content-Type')?.startsWith('image')) {
+          setImageUrls([...imageUrls, imageUrl]);
+          setTempImageUrl('');
+        } else {
+          alert('La URL no es una imagen válida o no existe.');
+        }
+      } catch (error) {
+        alert('Error al intentar cargar la imagen. Verifica la URL.');
+      }
     }
   };
 
@@ -239,7 +252,7 @@ const App: React.FC = () => {
         type: values.type || 'Trails',
         description: values.description || `A new hiking location at ${values.latitude}, ${values.longitude}`,
         imageUrls: imageUrls,
-        rating: 8.0,
+        rating: values.rating,
         isFavorite: false
       };
 
@@ -253,25 +266,29 @@ const App: React.FC = () => {
   };
 
   const handleRemoveLocation = (id: string) => {
-    const updatedLocations = locations.filter(location => location.id !== id);
-    setLocations(updatedLocations);
-    setFavoriteLocations(prev => prev.filter(loc => loc.id !== id));
+    if (favoriteLocations.some(loc => loc.id === id)) {
+      setFavoriteLocations(prev => prev.filter(loc => loc.id !== id));
+    }
+    setLocations(prev => prev.filter(loc => loc.id !== id));
   };
 
   const handleToggleFavorite = (id: string) => {
     const locationToToggle = locations.find(location => location.id === id);
-
     if (!locationToToggle) return;
 
     const isCurrentlyFavorite = favoriteLocations.some(loc => loc.id === id);
 
     if (isCurrentlyFavorite) {
       setFavoriteLocations(prev => prev.filter(loc => loc.id !== id));
-      setLocations(prev => prev.map(loc => loc.id === id ? { ...loc, isFavorite: false } : loc));
-
+      setLocations(prev =>
+        prev.map(loc => loc.id === id ? { ...loc, isFavorite: false } : loc)
+      );
     } else {
-      setFavoriteLocations(prev => [...prev, { ...locationToToggle, isFavorite: true }]);
-      setLocations(prev => prev.map(loc => loc.id === id ? { ...loc, isFavorite: true } : loc));
+      const updatedLocation = { ...locationToToggle, isFavorite: true };
+      setFavoriteLocations(prev => [...prev, updatedLocation]);
+      setLocations(prev =>
+        prev.map(loc => loc.id === id ? { ...loc, isFavorite: true } : loc)
+      );
     }
   };
 
@@ -384,7 +401,17 @@ const App: React.FC = () => {
                     ))}
                   </select>
                 </div>
-
+                <div className="form-field">
+                  <label>Rating</label>
+                  <input
+                    type="number"
+                    name="rating"
+                    placeholder="Rating"
+                    value={values.rating}
+                    onChange={handleChange}
+                  />
+                  {errors.longitude && <p className="error">{errors.rating}</p>}
+                </div>
                 <div className="form-field">
                   <label>Description</label>
                   <textarea
@@ -394,7 +421,6 @@ const App: React.FC = () => {
                     onChange={handleChange}
                   />
                 </div>
-
                 <div className="form-field">
                   <label>Image URL</label>
                   <input
@@ -496,12 +522,22 @@ const App: React.FC = () => {
                   <div className="listing-image-container">
                     <div className="card-image-carousel">
                       {place.imageUrls && place.imageUrls.length > 0 && (
-                        <Swiper spaceBetween={10} slidesPerView={1}>
+                        <Swiper
+                          spaceBetween={10}
+                          slidesPerView={1}
+                          navigation={{
+                            prevEl: '.swiper-button-prev',
+                            nextEl: '.swiper-button-next',
+                          }}
+                          modules={[Navigation]}
+                        >
                           {place.imageUrls.map((url, index) => (
                             <SwiperSlide key={index}>
                               <img src={url} alt={`Imagen ${index}`} className="carousel-image" />
                             </SwiperSlide>
                           ))}
+                          <div className="swiper-button-prev text-blue-500"></div>
+                          <div className="swiper-button-next text-blue-500"></div>
                         </Swiper>
                       )}
                     </div>
@@ -520,10 +556,6 @@ const App: React.FC = () => {
                           <TrashIcon size={16} />
                         </button>
                       </div>
-                      {place.rating !== undefined && (
-                        <div className="rating">
-                        </div>
-                      )}
                     </div>
                     <p className="location">
                       <MapPinIcon size={14} />
