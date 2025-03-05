@@ -1,15 +1,21 @@
+import isImageURL from 'image-url-validator';
+
 import React, { useState, useEffect } from 'react';
 import { Root as AccordionRoot, Item as AccordionItem, Header as AccordionHeader, Trigger as AccordionTrigger, Content as AccordionContent } from '@radix-ui/react-accordion';
 import { Checkbox } from '@radix-ui/react-checkbox';
 import { HeartIcon, PlusIcon, MinusIcon, MapPinIcon, TrashIcon } from 'lucide-react';
 import Map from './components/Map';
 import useLocalStorage from './hooks/useLocalStorage';
+import { useLocationManager } from './hooks/useLocationManager';
 import useForm from './hooks/useForm';
 import useDocumentTitle from './hooks/useDocumentTitle';
 import { v4 as uuidv4 } from 'uuid';
 import './styles.css';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import { Navigation, Pagination } from 'swiper/modules';
 
 interface Location {
   id: string;
@@ -36,6 +42,7 @@ interface FormValues {
   longitude: string;
   type: string;
   description: string;
+  rating: string;
 }
 
 const App: React.FC = () => {
@@ -51,7 +58,8 @@ const App: React.FC = () => {
     latitude: '',
     longitude: '',
     type: 'Trails',
-    description: ''
+    description: '',
+    rating: ''
   };
   const {
     handleChange,
@@ -78,6 +86,11 @@ const App: React.FC = () => {
         errors.longitude = 'Longitude must be between -180 and 180';
       }
 
+      const rating = parseFloat(values.rating);
+      if (isNaN(rating) || rating < 10 || rating > 0) {
+        errors.rating = 'Rating must be between 0 and 10';
+      }
+
       return errors;
     }
   });
@@ -85,7 +98,7 @@ const App: React.FC = () => {
   useDocumentTitle(title);
 
   const sampleHikingData: HikingPlace[] = [
-    {
+    /*{
       id: '1',
       name: 'Arenal Volcano National Park',
       latitude: 10.4626,
@@ -125,7 +138,7 @@ const App: React.FC = () => {
       rating: 7,
       type: 'Camping'
     },
-      {
+    {
       id: '4',
       name: 'La Paz Waterfall Gardens',
       latitude: 10.1554,
@@ -137,27 +150,24 @@ const App: React.FC = () => {
       ],
       rating: 6,
       type: 'Waterfalls'
-    }
+    }*/
   ];
 
   useEffect(() => {
-    let initialLocations: Location[] = [];
+    setLocations((prevLocations) => {
+      let initialLocations = [...prevLocations];
 
-    if (favoriteLocations && favoriteLocations.length > 0) {
-      initialLocations = favoriteLocations;
-    }
+      // Mantener los lugares existentes que no están en favoritos
+      const nonFavoriteLocations = prevLocations.filter(
+        (loc) => !favoriteLocations.some((fav) => fav.id === loc.id)
+      );
 
-    sampleHikingData.forEach(place => {
-      if (!initialLocations.some(loc => loc.id === place.id)) {
-        initialLocations.push({
-          ...place,
-          isFavorite: false
-        });
-      }
+      // Fusionar favoritos y no favoritos sin sobrescribir todo
+      return [...favoriteLocations, ...nonFavoriteLocations];
     });
-
-    setLocations(initialLocations);
+    console.log(locations)
   }, [favoriteLocations]);
+
 
   const filteredLocations = locations.filter(place => {
     if (showOnlyFavorites && !place.isFavorite) return false;
@@ -218,12 +228,27 @@ const App: React.FC = () => {
   const [tempImageUrl, setTempImageUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
-  const handleAddImage = () => {
-    if (tempImageUrl.trim()) {
-      setImageUrls([...imageUrls, tempImageUrl.trim()]);
-      setTempImageUrl('');
+  const handleAddImage = async () => {
+    const imageUrl = tempImageUrl.trim();
+
+    if (imageUrl) {
+      try {
+        // Verifica si la URL corresponde a una imagen válida
+        const response = await fetch(imageUrl, { method: 'HEAD' });
+
+        // Verifica si la respuesta es exitosa y si el contenido es una imagen
+        if (response.ok && response.headers.get('Content-Type')?.startsWith('image')) {
+          setImageUrls([...imageUrls, imageUrl]);
+          setTempImageUrl('');
+        } else {
+          alert('La URL no es una imagen válida o no existe.');
+        }
+      } catch (error) {
+        alert('Error al intentar cargar la imagen. Verifica la URL.');
+      }
     }
   };
+
 
   const handleRemoveImage = (index: number) => {
     setImageUrls(imageUrls.filter((_, i) => i !== index));
@@ -239,7 +264,7 @@ const App: React.FC = () => {
         type: values.type || 'Trails',
         description: values.description || `A new hiking location at ${values.latitude}, ${values.longitude}`,
         imageUrls: imageUrls,
-        rating: 8.0,
+        rating: values.rating,
         isFavorite: false
       };
 
@@ -253,26 +278,31 @@ const App: React.FC = () => {
   };
 
   const handleRemoveLocation = (id: string) => {
-    const updatedLocations = locations.filter(location => location.id !== id);
-    setLocations(updatedLocations);
-    setFavoriteLocations(prev => prev.filter(loc => loc.id !== id));
+    if (favoriteLocations.some(loc => loc.id === id)) {
+      setFavoriteLocations(prev => prev.filter(loc => loc.id !== id));
+    }
+    setLocations(prev => prev.filter(loc => loc.id !== id));
   };
 
   const handleToggleFavorite = (id: string) => {
     const locationToToggle = locations.find(location => location.id === id);
-
     if (!locationToToggle) return;
 
     const isCurrentlyFavorite = favoriteLocations.some(loc => loc.id === id);
 
     if (isCurrentlyFavorite) {
       setFavoriteLocations(prev => prev.filter(loc => loc.id !== id));
-      setLocations(prev => prev.map(loc => loc.id === id ? { ...loc, isFavorite: false } : loc));
-
+      setLocations(prev =>
+        prev.map(loc => loc.id === id ? { ...loc, isFavorite: false } : loc)
+      );
     } else {
-      setFavoriteLocations(prev => [...prev, { ...locationToToggle, isFavorite: true }]);
-      setLocations(prev => prev.map(loc => loc.id === id ? { ...loc, isFavorite: true } : loc));
+      const updatedLocation = { ...locationToToggle, isFavorite: true };
+      setFavoriteLocations(prev => [...prev, updatedLocation]);
+      setLocations(prev =>
+        prev.map(loc => loc.id === id ? { ...loc, isFavorite: true } : loc)
+      );
     }
+
   };
 
   const handleToggleAddLocation = () => {
@@ -306,187 +336,212 @@ const App: React.FC = () => {
   return (
     <div className="hiking-app">
       <div className="app-container">
-        <div className="filter-panel">
-          <div className="filter-header">
-            <h2>Filters</h2>
-            <button className="clear-button" onClick={() => {
-              setSelectedTypes([]);
-              setSelectedRatings([]);
-              setShowOnlyFavorites(false);
-            }}>
-              Clear Filters
-            </button>
-          </div>
+      <div className="filter-panel accordion-panel">
+          <AccordionRoot type="multiple" defaultValue={['new-location', 'filters']}>
+            <AccordionItem value="new-location">
+              <AccordionHeader>
+                <AccordionTrigger className="accordion-trigger">
+                  <h2>New Location</h2>
+                </AccordionTrigger>
+              </AccordionHeader>
+              <AccordionContent className="accordion-content">
+                <div className="user-location-controls">
+                  <div className="controls-row">
+                    <button
+                      className={`control-button ${isAddingLocation ? 'active' : ''}`}
+                      onClick={handleToggleAddLocation}
+                    >
+                      <PlusIcon size={14} />
+                      <span>{isAddingLocation ? 'Cancel' : 'Add Location'}</span>
+                    </button>
+                  </div>
+                </div>
+                {isAddingLocation && (
+                  <div className="add-location-form">
+                    {/* ... (formulario para agregar ubicación) */}
+                    <h3>Add Hiking Location</h3>
+                    <form onSubmit={(e) => { handleSubmit(e); handleAddLocation(); }}>
+                      {/* ... (campos del formulario) */}
+                      <div className="form-field">
+                        <label>Name</label>
+                        <input
+                          type="text"
+                          name="name"
+                          placeholder="Location name"
+                          value={values.name}
+                          onChange={handleChange}
+                        />
+                        {errors.name && <p className="error">{errors.name}</p>}
+                      </div>
 
-          <div className="user-location-controls">
-            <h3>Your Location</h3>
-            <div className="controls-row">
-              <button
-                className={`control-button ${isAddingLocation ? 'active' : ''}`}
-                onClick={handleToggleAddLocation}
-              >
-                <PlusIcon size={14} />
-                <span>{isAddingLocation ? 'Cancel' : 'Add Location'}</span>
-              </button>
-            </div>
-          </div>
+                      <div className="form-field">
+                        <label>Latitude</label>
+                        <input
+                          type="number"
+                          name="latitude"
+                          placeholder="Latitude"
+                          value={values.latitude}
+                          onChange={handleChange}
+                        />
+                        {errors.latitude && <p className="error">{errors.latitude}</p>}
+                      </div>
 
-          {/* Location form or filters */}
-          {isAddingLocation ? (
-            <div className="add-location-form">
-              <h3>Add Hiking Location</h3>
-              <form onSubmit={(e) => { handleSubmit(e); handleAddLocation(); }}>
-                <div className="form-field">
-                  <label>Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Location name"
-                    value={values.name}
-                    onChange={handleChange}
-                  />
-                  {errors.name && <p className="error">{errors.name}</p>}
-                </div>
+                      <div className="form-field">
+                        <label>Longitude</label>
+                        <input
+                          type="number"
+                          name="longitude"
+                          placeholder="Longitude"
+                          value={values.longitude}
+                          onChange={handleChange}
+                        />
+                        {errors.longitude && <p className="error">{errors.longitude}</p>}
+                      </div>
 
-                <div className="form-field">
-                  <label>Latitude</label>
-                  <input
-                    type="number"
-                    name="latitude"
-                    placeholder="Latitude"
-                    value={values.latitude}
-                    onChange={handleChange}
-                  />
-                  {errors.latitude && <p className="error">{errors.latitude}</p>}
-                </div>
-
-                <div className="form-field">
-                  <label>Longitude</label>
-                  <input
-                    type="number"
-                    name="longitude"
-                    placeholder="Longitude"
-                    value={values.longitude}
-                    onChange={handleChange}
-                  />
-                  {errors.longitude && <p className="error">{errors.longitude}</p>}
-                </div>
-
-                <div className="form-field">
-                  <label>Type</label>
-                  <select
-                    name="type"
-                    value={values.type}
-                    onChange={handleChange}
-                  >
-                    {placeTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-field">
-                  <label>Description</label>
-                  <textarea
-                    name="description"
-                    placeholder="Brief description"
-                    value={values.description}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label>Image URL</label>
-                  <input
-                    type="text"
-                    value={tempImageUrl}
-                    onChange={(e) => setTempImageUrl(e.target.value)}
-                    placeholder="Enter image URL"
-                  />
-                  <button type="button" className="add-image-button" onClick={handleAddImage}>
-                    Add Image
-                  </button>
-                </div>
-                <div className="image-thumbnails">
-                  {imageUrls.map((url, index) => (
-                    <div key={index} className="thumbnail">
-                      <img src={url} alt={`Img ${index}`} className="small-image" />
-                      <button type="button" onClick={() => handleRemoveImage(index)}>
-                        X
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button className="form-submit-button" type="submit">Add Location</button>
-              </form>
-            </div>
-          ) : (
-            <div className="filter-options">
-              <div className="filter-section">
-                <h3>Favorites</h3>
-                <div className="checkbox-wrapper">
-                  <Checkbox
-                    checked={showOnlyFavorites}
-                    onCheckedChange={(checked) => setShowOnlyFavorites(checked === true)}
-                    id="favorites"
-                    className="checkbox"
-                  />
-                  <label htmlFor="favorites" className="checkbox-label">
-                    Show favorites only
-                  </label>
-                </div>
-              </div>
-              <AccordionRoot type="multiple" defaultValue={['property-type']}>
-                <AccordionItem value="property-type">
-                  <AccordionHeader>
-                    <AccordionTrigger className="accordion-trigger">
-                      <h3>Place Type</h3>
-                    </AccordionTrigger>
-                  </AccordionHeader>
-                  <AccordionContent className="accordion-content">
-                    <div className="property-types">
-                      {placeTypes.map(type => (
-                        <div
-                          key={type}
-                          className={`property-type-card ${selectedTypes.includes(type) ? 'selected' : ''}`}
-                          onClick={() => toggleTypeSelection(type)}
+                      <div className="form-field">
+                        <label>Type</label>
+                        <select
+                          name="type"
+                          value={values.type}
+                          onChange={handleChange}
                         >
-                          <div className="property-icon"></div>
-                          <span>{type}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
+                          {placeTypes.map(type => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-field">
+                        <label>Rating</label>
+                        <input
+                          type="number"
+                          name="rating"
+                          placeholder="Rating"
+                          value={values.rating}
+                          onChange={handleChange}
+                        />
+                        {errors.longitude && <p className="error">{errors.rating}</p>}
+                      </div>
+                      <div className="form-field">
+                        <label>Description</label>
+                        <textarea
+                          name="description"
+                          placeholder="Brief description"
+                          value={values.description}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label>Image URL</label>
+                        <input
+                          type="text"
+                          value={tempImageUrl}
+                          onChange={(e) => setTempImageUrl(e.target.value)}
+                          placeholder="Enter image URL"
+                        />
+                        <button type="button" className="add-image-button" onClick={handleAddImage}>
+                          Add Image
+                        </button>
+                      </div>
+                      <div className="image-thumbnails">
+                        {imageUrls.map((url, index) => (
+                          <div key={index} className="thumbnail">
+                            <img src={url} alt={`Img ${index}`} className="small-image" />
+                            <button type="button" onClick={() => handleRemoveImage(index)}>
+                              X
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button className="form-submit-button" type="submit">Add Location</button>
+                    </form>
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
 
-                <AccordionItem value="review-score">
-                  <AccordionHeader>
-                    <AccordionTrigger className="accordion-trigger">
-                      <h3>Review Score</h3>
-                    </AccordionTrigger>
-                  </AccordionHeader>
-                  <AccordionContent className="accordion-content">
-                    <div className="rating-options">
-                      {ratingOptions.map(rating => (
-                        <div
-                          key={rating}
-                          className={`rating-pill ${selectedRatings.includes(rating) ? 'selected' : ''}`}
-                          onClick={() => toggleRatingSelection(rating)}
-                        >
-                          {rating}
-                        </div>
-                      ))}
+            <AccordionItem value="filters">
+              <AccordionHeader>
+                <AccordionTrigger className="accordion-trigger">
+                  <h2>Filters</h2>
+                </AccordionTrigger>
+              </AccordionHeader>
+              <AccordionContent className="accordion-content">
+                <div className="filter-container">
+                  <div className="filter-options">
+                    <div className="filter-section">
+                      <h3>Favorites</h3>
+                      <div className="checkbox-wrapper">
+                        <Checkbox
+                          checked={showOnlyFavorites}
+                          onCheckedChange={(checked) => setShowOnlyFavorites(checked === true)}
+                          id="favorites"
+                          className="checkbox"
+                        />
+                        <label htmlFor="favorites" className="checkbox-label">
+                          Show favorites only
+                        </label>
+                      </div>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </AccordionRoot>
-            </div>
-          )}
+                    <AccordionRoot type="multiple" defaultValue={['property-type', 'review-score']}>
+                      <AccordionItem value="property-type">
+                        <AccordionHeader>
+                          <AccordionTrigger className="accordion-trigger">
+                            <h3>Place Type</h3>
+                          </AccordionTrigger>
+                        </AccordionHeader>
+                        <AccordionContent className="accordion-content">
+                          <div className="property-types">
+                            {placeTypes.map(type => (
+                              <div
+                                key={type}
+                                className={`property-type-card ${selectedTypes.includes(type) ? 'selected' : ''}`}
+                                onClick={() => toggleTypeSelection(type)}
+                              >
+                                <div className="property-icon"></div>
+                                <span>{type}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="review-score">
+                        <AccordionHeader>
+                          <AccordionTrigger className="accordion-trigger">
+                            <h3>Review Score</h3>
+                          </AccordionTrigger>
+                        </AccordionHeader>
+                        <AccordionContent className="accordion-content">
+                          <div className="rating-options">
+                            {ratingOptions.map(rating => (
+                              <div
+                                key={rating}
+                                className={`rating-pill ${selectedRatings.includes(rating) ? 'selected' : ''}`}
+                                onClick={() => toggleRatingSelection(rating)}
+                              >
+                                {rating}
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </AccordionRoot>
+                  </div>
+                    <button className="clear-button" onClick={() => {
+                      setSelectedTypes([]);
+                      setSelectedRatings([]);
+                      setShowOnlyFavorites(false);
+                    }}>
+                      Clear Filters
+                    </button>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </AccordionRoot>
         </div>
 
         <div className="listing-map-container">
+          <h1 className="page-title">{title}</h1>
           <div className="listings">
-            <h1 className="page-title">{title}</h1>
 
             {filteredLocations.length === 0 ? (
               <div className="no-results">No hiking places match your filters.</div>
@@ -496,12 +551,22 @@ const App: React.FC = () => {
                   <div className="listing-image-container">
                     <div className="card-image-carousel">
                       {place.imageUrls && place.imageUrls.length > 0 && (
-                        <Swiper spaceBetween={10} slidesPerView={1}>
+                        <Swiper
+                          spaceBetween={10}
+                          slidesPerView={1}
+                          navigation={{
+                            prevEl: '.swiper-button-prev',
+                            nextEl: '.swiper-button-next',
+                          }}
+                          modules={[Navigation]}
+                        >
                           {place.imageUrls.map((url, index) => (
                             <SwiperSlide key={index}>
                               <img src={url} alt={`Imagen ${index}`} className="carousel-image" />
                             </SwiperSlide>
                           ))}
+                          <div className="swiper-button-prev text-blue-500"></div>
+                          <div className="swiper-button-next text-blue-500"></div>
                         </Swiper>
                       )}
                     </div>
@@ -517,13 +582,9 @@ const App: React.FC = () => {
                           <HeartIcon size={20} />
                         </button>
                         <button className="remove-button" onClick={() => handleRemoveLocation(place.id)}>
-                          <TrashIcon size={16} />
+                          <TrashIcon size={20} />
                         </button>
                       </div>
-                      {place.rating !== undefined && (
-                        <div className="rating">
-                        </div>
-                      )}
                     </div>
                     <p className="location">
                       <MapPinIcon size={14} />

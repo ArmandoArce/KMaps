@@ -56,6 +56,12 @@ body {
 
 .filter-header {
   display: flex;
+  margin-bottom: 8px;
+  justify-content: space-between;
+}
+
+.filter-container {
+  display: grid;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
@@ -67,12 +73,25 @@ body {
 }
 
 .clear-button {
-  background: none;
-  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--secondary-color);
+  border: 1px solid var(--primary-color);
   color: var(--primary-color);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
   cursor: pointer;
-  font-size: 14px;
-  text-decoration: underline;
+  transition: all 0.2s ease;
+  width: 100%;
+  height: 100%;
+}
+
+.clear-button:hover {
+  background-color: #e74c3c; 
+  border-color: #c0392b;
+  color: #fff; 
 }
 
 .filter-section {
@@ -325,7 +344,7 @@ body {
   text-align: center;
 }
 
-.show-more-button {
+.show-more-D {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -357,35 +376,55 @@ body {
   color: var(--white);
 }
 
-/* Listing and Map Container */
-.listing-map-container {
-  display: flex;
-}
-
-.listings {
-  flex: 1;
-}
-
+/* carousel */
 .card-image-carousel {
+  margin: 4px;
   width: 100%;
   height: 100%;
+  max-width: 250px;
   max-height: 200px;
-  max-width: 200px;
   position: relative;
 }
 
-.card-image-carousel img { 
+.card-image-carousel img {
   width: 100%;
   height: 100%;
-  object-fit: scale-down; 
+  min-width: 250px;
+  min-height: 200px;
+  border-radius: 5%;
 }
 
 .map-container {
   width: 100%;
-  height: 500px;
-  position: relative;
-  z-index: 1;
-  margin-top: 20px;
+  height: 100%;
+}
+
+/* Listin area */
+.listing-map-container {
+  max-width: 100%;
+  min-width: 380px;
+  display: flex; 
+  flex-direction: column; 
+}
+
+.listings {
+  margin: 4px;
+  display: flex;
+  overflow-x: auto; 
+  white-space: nowrap; 
+  flex: 1;
+  margin-bottom: 8px;
+}
+
+.listing-content{
+  padding-top: 50px;
+  padding-left: 8px;
+}
+
+.description {
+  width: 95%;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .listing-header {
@@ -393,10 +432,48 @@ body {
   align-items: center;
 }
 
+.listing-card {
+  border: 1px solid #e0e0e0;
+  background-color: white;
+  display: inline-block;
+  margin-right: 10px;
+  width: 350px;
+  flex-shrink: 0;
+}
+
+.listing-card .info {
+  padding: 20px; 
+}
+
+.listing-card h2 {
+  margin-bottom: 3px; 
+}
+
+.listing-card p {
+  font-size: 0.9em; 
+  color: #666; 
+  margin-bottom: 2px; 
+}
+
+
+/* */
+.favorite-button,
+.remove-button {
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.favorite-button svg:hover,
+.remove-button svg:hover {
+    transform: scale(1.4); 
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2)); 
+    transition: transform 0.3s ease, filter 0.3s ease; 
+}
+
 .header-actions button {
   margin-left: 8px;
 }
-
 
 .image-thumbnails {
   display: flex;
@@ -404,20 +481,20 @@ body {
 }
 
 .thumbnail {
-  position: relative; 
+  position: relative;
   margin: 5px;
 }
 
 .thumbnail img.small-image {
-  width: 200px; 
-  height: 200px; 
-  object-fit: cover; 
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
 }
 
 .thumbnail button {
-  position: absolute; 
+  position: absolute;
   top: 5px;
-  right: 5px; 
+  right: 5px;
   background-color: rgba(255, 0, 0, 0.7);
   color: white;
   border: none;
@@ -456,3 +533,13 @@ body {
   color: red;
   fill: red;
 }
+
+.swiper-button-prev,
+.swiper-button-next {
+  color: red;
+}
+
+.swiper-button-disabled {
+  opacity: 0.5;
+}
+

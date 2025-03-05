@@ -85,7 +85,7 @@ const Map: React.FC<MapProps> = ({ locations, onMarkerClick, onMapClick }) => {
         }
     };
 
-    return <div ref={mapRef} style={{ width: "100%", height: "400px" }} />;
+    return <div ref={mapRef} style={{ width: "100%", height: "100%", position: "absolute" }} />;
 };
 
 export default Map;
