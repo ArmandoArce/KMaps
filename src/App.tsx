@@ -1,12 +1,9 @@
-import isImageURL from 'image-url-validator';
-
 import React, { useState, useEffect } from 'react';
 import { Root as AccordionRoot, Item as AccordionItem, Header as AccordionHeader, Trigger as AccordionTrigger, Content as AccordionContent } from '@radix-ui/react-accordion';
 import { Checkbox } from '@radix-ui/react-checkbox';
-import { HeartIcon, PlusIcon, MinusIcon, MapPinIcon, TrashIcon } from 'lucide-react';
+import { LuHeart, LuCircleX, LuMapPin, LuMapPinPlus, LuMountain, LuDroplets, LuTrainTrack, LuFlameKindling, LuWheat, LuHotel } from "react-icons/lu";
 import Map from './components/Map';
 import useLocalStorage from './hooks/useLocalStorage';
-import { useLocationManager } from './hooks/useLocationManager';
 import useForm from './hooks/useForm';
 import useDocumentTitle from './hooks/useDocumentTitle';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,7 +12,8 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import { Navigation, Pagination } from 'swiper/modules';
+import { Navigation } from 'swiper/modules';
+
 
 interface Location {
   id: string;
@@ -47,7 +45,7 @@ interface FormValues {
 
 const App: React.FC = () => {
   const [locations, setLocations] = useState<Location[]>([]);
-  const [title, setTitle] = useState<string>('Hiking Places Map');
+  const [title] = useState<string>('Hiking Map');
   const [favoriteLocations, setFavoriteLocations] = useLocalStorage<Location[]>('favoriteLocations', []);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedRatings, setSelectedRatings] = useState<string[]>([]);
@@ -86,7 +84,7 @@ const App: React.FC = () => {
         errors.longitude = 'Longitude must be between -180 and 180';
       }
 
-      const rating = parseFloat(values.rating);
+      const rating = parseInt(values.rating);
       if (isNaN(rating) || rating < 10 || rating > 0) {
         errors.rating = 'Rating must be between 0 and 10';
       }
@@ -97,77 +95,14 @@ const App: React.FC = () => {
 
   useDocumentTitle(title);
 
-  const sampleHikingData: HikingPlace[] = [
-    /*{
-      id: '1',
-      name: 'Arenal Volcano National Park',
-      latitude: 10.4626,
-      longitude: -84.7032,
-      description: 'Iconic volcano with hiking trails, hot springs, and stunning lake views.',
-      imageUrls: [
-        'https://d2xuzatlfjyc9k.cloudfront.net/wp-content/uploads/2014/05/Visit-Arenal-Volcano-National-Park-1.jpg',
-        'https://www.arenal.net/img/U0ZXOLVFuU-480.jpeg',
-        'https://upload.wikimedia.org/wikipedia/commons/3/3a/Arenal_volcano_%2870785p%29_%28cropped%29.jpg'
-      ],
-      rating: 9,
-      type: 'Mountain'
-    },
-    {
-      id: '2',
-      name: 'Manuel Antonio National Park',
-      latitude: 9.4087,
-      longitude: -84.1457,
-      description: 'Beautiful beaches, rainforest trails, and abundant wildlife including monkeys and sloths.',
-      imageUrls: [
-        'https://www.visitcostarica.com/sites/default/files/2024-10/Aerial%20Drone%20view%20of%20Manuel%20Antonio%20National%20Park%20in%20Costa%20Rica.%20.jpg',
-        'https://iltcostarica.com/uploads/activity/images/6/0/60632247508ef518197056_2.jpg'
-      ],
-      rating: 8,
-      type: 'Trails'
-    },
-    {
-      id: '3',
-      name: 'Monteverde Cloud Forest Reserve',
-      latitude: 10.3235,
-      longitude: -84.7956,
-      description: 'Unique cloud forest with hanging bridges, diverse flora and fauna, and breathtaking views.',
-      imageUrls: [
-        'https://elbosquemonteverde.com/wp-content/uploads/sites/3174/2021/08/monteverde-cloud-forest-reserve.jpg?w=700&h=700&zoom=2',
-        'https://mediaim.expedia.com/destination/1/e1e84d638ee9bc3a942f2e9f724ba527.jpg?impolicy=fcrop&w=450&h=280&q=medium'
-      ],
-      rating: 7,
-      type: 'Camping'
-    },
-    {
-      id: '4',
-      name: 'La Paz Waterfall Gardens',
-      latitude: 10.1554,
-      longitude: -84.1165,
-      description: 'Five stunning waterfalls, animal sanctuary, and beautiful gardens.',
-      imageUrls: [
-        'https://costarica.org/wp-content/uploads/2014/12/la-paz-waterfall-gardens-waterfall-view.jpg',
-        'https://waterfallgardens.com/wp-content/uploads/2020/09/Brand-Video-Peace-Lodge-III_1-min.jpg'
-      ],
-      rating: 6,
-      type: 'Waterfalls'
-    }*/
-  ];
-
   useEffect(() => {
     setLocations((prevLocations) => {
-      let initialLocations = [...prevLocations];
-
-      // Mantener los lugares existentes que no están en favoritos
       const nonFavoriteLocations = prevLocations.filter(
         (loc) => !favoriteLocations.some((fav) => fav.id === loc.id)
       );
-
-      // Fusionar favoritos y no favoritos sin sobrescribir todo
       return [...favoriteLocations, ...nonFavoriteLocations];
     });
-    console.log(locations)
   }, [favoriteLocations]);
-
 
   const filteredLocations = locations.filter(place => {
     if (showOnlyFavorites && !place.isFavorite) return false;
@@ -189,7 +124,6 @@ const App: React.FC = () => {
 
   const mapLocations = React.useMemo(() => {
     const mapLocs: Location[] = [];
-    const favoriteIds = favoriteLocations.map(loc => loc.id);
 
     mapLocs.push(...filteredLocations);
 
@@ -233,10 +167,7 @@ const App: React.FC = () => {
 
     if (imageUrl) {
       try {
-        // Verifica si la URL corresponde a una imagen válida
         const response = await fetch(imageUrl, { method: 'HEAD' });
-
-        // Verifica si la respuesta es exitosa y si el contenido es una imagen
         if (response.ok && response.headers.get('Content-Type')?.startsWith('image')) {
           setImageUrls([...imageUrls, imageUrl]);
           setTempImageUrl('');
@@ -248,7 +179,6 @@ const App: React.FC = () => {
       }
     }
   };
-
 
   const handleRemoveImage = (index: number) => {
     setImageUrls(imageUrls.filter((_, i) => i !== index));
@@ -313,26 +243,6 @@ const App: React.FC = () => {
     setIsAddingLocation(!isAddingLocation);
   };
 
-  const getCurrentLocation = (): Promise<{ latitude: number; longitude: number }> => {
-    return new Promise((resolve, reject) => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            resolve({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            });
-          },
-          (error) => {
-            reject(error);
-          }
-        );
-      } else {
-        reject(new Error('Geolocation is not supported by this browser.'));
-      }
-    });
-  };
-
   return (
     <div className="hiking-app">
       <div className="app-container">
@@ -351,8 +261,8 @@ const App: React.FC = () => {
                       className={`control-button ${isAddingLocation ? 'active' : ''}`}
                       onClick={handleToggleAddLocation}
                     >
-                      <PlusIcon size={14} />
-                      <span>{isAddingLocation ? 'Cancel' : 'Add Location'}</span>
+                      <LuMapPinPlus size={14} />
+                      <span>{isAddingLocation ? ' | Cancel' : ' | Add Location'}</span>
                     </button>
                   </div>
                 </div>
@@ -579,15 +489,15 @@ const App: React.FC = () => {
                           className={`favorite-button ${place.isFavorite ? 'active' : ''}`}
                           onClick={() => handleToggleFavorite(place.id)}
                         >
-                          <HeartIcon size={20} />
+                          <LuHeart size={20} />
                         </button>
                         <button className="remove-button" onClick={() => handleRemoveLocation(place.id)}>
-                          <TrashIcon size={20} />
+                          <LuCircleX size={20} />
                         </button>
                       </div>
                     </div>
                     <p className="location">
-                      <MapPinIcon size={14} />
+                      <LuMapPin size={14} />
                       <span>{place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}</span>
                     </p>
                     {place.description && <p className="description">{place.description}</p>}
