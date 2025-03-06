@@ -38,8 +38,8 @@ const Map: React.FC<MapProps> = ({ locations, onMarkerClick, onMapClick }) => {
                     const map = new window.google.maps.Map(mapRef.current, {
                         center: locations[0]
                             ? { lat: locations[0].latitude, lng: locations[0].longitude }
-                            : { lat: 0, lng: 0 },
-                        zoom: 10,
+                            : { lat: 9.9281, lng: -84.0907 },
+                        zoom: 9,
                     });
 
                     mapInstance.current = map;
@@ -85,7 +85,7 @@ const Map: React.FC<MapProps> = ({ locations, onMarkerClick, onMapClick }) => {
         }
     };
 
-    return <div ref={mapRef} style={{ width: "100%", height: "100%", position: "absolute" }} />;
+    return <div ref={mapRef} style={{ width: "100%", height: "90vh", position: "absolute" }} />;
 };
 
 export default Map;

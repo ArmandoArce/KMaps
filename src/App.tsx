@@ -173,7 +173,7 @@ const App: React.FC = () => {
         setTempImageUrl('');
       };
       img.onerror = () => {
-        alert('La URL no es una imagen válida o no existe.');
+        alert('Not a valid format.');
       };
       img.src = imageUrl;
     }
