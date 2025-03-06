@@ -116,6 +116,7 @@ const App: React.FC = () => {
         if (rating === 'Good: 7+') return placeRating >= 7 && placeRating < 8;
         if (rating === 'Pleasant: 6+') return placeRating >= 6 && placeRating < 7;
         if (rating === 'Ok: 5+') return placeRating >= 5 && placeRating < 6;
+        if (rating === 'Terrible: 5-') return placeRating < 5;
         return false;
       })) return false;
     }
@@ -145,7 +146,7 @@ const App: React.FC = () => {
 
   const placeTypes = ['Mountain', 'Waterfalls', 'Trails', 'Camping', 'Nature Walks', 'Lodging'];
 
-  const ratingOptions = ['Wonderful: 9+', 'Very Good: 8+', 'Good: 7+', 'Pleasant: 6+', 'Ok: 5+'];
+  const ratingOptions = ['Wonderful: 9+', 'Very Good: 8+', 'Good: 7+', 'Pleasant: 6+', 'Ok: 5+', 'Terrible: 5-'];
 
   const toggleTypeSelection = (type: string) => {
     setSelectedTypes(prev =>
@@ -162,21 +163,19 @@ const App: React.FC = () => {
   const [tempImageUrl, setTempImageUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
-  const handleAddImage = async () => {
+  const handleAddImage = () => {
     const imageUrl = tempImageUrl.trim();
 
     if (imageUrl) {
-      try {
-        const response = await fetch(imageUrl, { method: 'HEAD' });
-        if (response.ok && response.headers.get('Content-Type')?.startsWith('image')) {
-          setImageUrls([...imageUrls, imageUrl]);
-          setTempImageUrl('');
-        } else {
-          alert('La URL no es una imagen válida o no existe.');
-        }
-      } catch (error) {
-        alert('Error al intentar cargar la imagen. Verifica la URL.');
-      }
+      const img = new Image();
+      img.onload = () => {
+        setImageUrls([...imageUrls, imageUrl]);
+        setTempImageUrl('');
+      };
+      img.onerror = () => {
+        alert('La URL no es una imagen válida o no existe.');
+      };
+      img.src = imageUrl;
     }
   };
 
@@ -246,11 +245,11 @@ const App: React.FC = () => {
   return (
     <div className="hiking-app">
       <div className="app-container">
-      <div className="filter-panel accordion-panel">
+        <div className="filter-panel accordion-panel">
           <AccordionRoot type="multiple" defaultValue={['new-location', 'filters']}>
             <AccordionItem value="new-location">
               <AccordionHeader>
-                <AccordionTrigger className="accordion-trigger">
+                <AccordionTrigger className="accordion-trigger" aria-expanded={isAddingLocation} aria-label="Toggle New Location section">
                   <h2>New Location</h2>
                 </AccordionTrigger>
               </AccordionHeader>
@@ -260,118 +259,150 @@ const App: React.FC = () => {
                     <button
                       className={`control-button ${isAddingLocation ? 'active' : ''}`}
                       onClick={handleToggleAddLocation}
+                      aria-label={isAddingLocation ? "Cancel adding location" : "Add a new location"}
                     >
-                      <LuMapPinPlus size={14} />
+                      <LuMapPinPlus size={14} aria-hidden="true" />
                       <span>{isAddingLocation ? ' | Cancel' : ' | Add Location'}</span>
                     </button>
                   </div>
                 </div>
                 {isAddingLocation && (
                   <div className="add-location-form">
-                    {/* ... (formulario para agregar ubicación) */}
                     <h3>Add Hiking Location</h3>
                     <form onSubmit={(e) => { handleSubmit(e); handleAddLocation(); }}>
-                      {/* ... (campos del formulario) */}
                       <div className="form-field">
-                        <label>Name</label>
+                        <label htmlFor="location-name">Name</label>
                         <input
+                          id="location-name"
                           type="text"
                           name="name"
                           placeholder="Location name"
                           value={values.name}
                           onChange={handleChange}
+                          aria-required="true"
                         />
-                        {errors.name && <p className="error">{errors.name}</p>}
+                        {errors.name && <p className="error" role="alert">{errors.name}</p>}
                       </div>
 
                       <div className="form-field">
-                        <label>Latitude</label>
+                        <label htmlFor="latitude">Latitude</label>
                         <input
+                          id="latitude"
                           type="number"
                           name="latitude"
                           placeholder="Latitude"
                           value={values.latitude}
                           onChange={handleChange}
+                          aria-required="true"
                         />
-                        {errors.latitude && <p className="error">{errors.latitude}</p>}
+                        {errors.latitude && <p className="error" role="alert">{errors.latitude}</p>}
                       </div>
 
                       <div className="form-field">
-                        <label>Longitude</label>
+                        <label htmlFor="longitude">Longitude</label>
                         <input
+                          id="longitude"
                           type="number"
                           name="longitude"
                           placeholder="Longitude"
                           value={values.longitude}
                           onChange={handleChange}
+                          aria-required="true"
                         />
-                        {errors.longitude && <p className="error">{errors.longitude}</p>}
+                        {errors.longitude && <p className="error" role="alert">{errors.longitude}</p>}
                       </div>
 
                       <div className="form-field">
-                        <label>Type</label>
+                        <label htmlFor="type">Type</label>
                         <select
+                          id="type"
                           name="type"
                           value={values.type}
                           onChange={handleChange}
+                          aria-required="true"
                         >
                           {placeTypes.map(type => (
                             <option key={type} value={type}>{type}</option>
                           ))}
                         </select>
                       </div>
+
                       <div className="form-field">
-                        <label>Rating</label>
+                        <label htmlFor="rating">Rating</label>
                         <input
+                          id="rating"
                           type="number"
                           name="rating"
                           placeholder="Rating"
                           value={values.rating}
                           onChange={handleChange}
+                          aria-required="true"
                         />
-                        {errors.longitude && <p className="error">{errors.rating}</p>}
+                        {errors.rating && <p className="error" role="alert">{errors.rating}</p>}
                       </div>
+
                       <div className="form-field">
-                        <label>Description</label>
+                        <label htmlFor="description">Description</label>
                         <textarea
+                          id="description"
                           name="description"
                           placeholder="Brief description"
                           value={values.description}
                           onChange={handleChange}
                         />
                       </div>
+
                       <div className="form-field">
-                        <label>Image URL</label>
+                        <label htmlFor="image-url">Image URL</label>
                         <input
+                          id="image-url"
                           type="text"
                           value={tempImageUrl}
                           onChange={(e) => setTempImageUrl(e.target.value)}
                           placeholder="Enter image URL"
                         />
-                        <button type="button" className="add-image-button" onClick={handleAddImage}>
+                        <button
+                          type="button"
+                          className="add-image-button"
+                          onClick={handleAddImage}
+                          aria-label="Add image"
+                        >
                           Add Image
                         </button>
                       </div>
+
                       <div className="image-thumbnails">
                         {imageUrls.map((url, index) => (
                           <div key={index} className="thumbnail">
-                            <img src={url} alt={`Img ${index}`} className="small-image" />
-                            <button type="button" onClick={() => handleRemoveImage(index)}>
+                            <img src={url} alt={`Uploaded image ${index + 1}`} className="small-image" />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(index)}
+                              aria-label={`Remove image ${index + 1}`}
+                            >
                               X
                             </button>
                           </div>
                         ))}
                       </div>
-                      <button className="form-submit-button" type="submit">Add Location</button>
+
+                      <button
+                        className="form-submit-button"
+                        type="submit"
+                        aria-label="Submit new location"
+                      >
+                        Add Location
+                      </button>
                     </form>
                   </div>
                 )}
               </AccordionContent>
             </AccordionItem>
 
+
             <AccordionItem value="filters">
               <AccordionHeader>
-                <AccordionTrigger className="accordion-trigger">
+                <AccordionTrigger className="accordion-trigger" >
                   <h2>Filters</h2>
                 </AccordionTrigger>
               </AccordionHeader>
@@ -386,6 +417,7 @@ const App: React.FC = () => {
                           onCheckedChange={(checked) => setShowOnlyFavorites(checked === true)}
                           id="favorites"
                           className="checkbox"
+                          aria-label="Show favorites only"
                         />
                         <label htmlFor="favorites" className="checkbox-label">
                           Show favorites only
@@ -395,22 +427,54 @@ const App: React.FC = () => {
                     <AccordionRoot type="multiple" defaultValue={['property-type', 'review-score']}>
                       <AccordionItem value="property-type">
                         <AccordionHeader>
-                          <AccordionTrigger className="accordion-trigger">
+                          <AccordionTrigger className="accordion-trigger" >
                             <h3>Place Type</h3>
                           </AccordionTrigger>
                         </AccordionHeader>
                         <AccordionContent className="accordion-content">
                           <div className="property-types">
-                            {placeTypes.map(type => (
-                              <div
-                                key={type}
-                                className={`property-type-card ${selectedTypes.includes(type) ? 'selected' : ''}`}
-                                onClick={() => toggleTypeSelection(type)}
-                              >
-                                <div className="property-icon"></div>
-                                <span>{type}</span>
-                              </div>
-                            ))}
+                            {placeTypes.map(type => {
+                              let iconComponent;
+                              switch (type) {
+                                case 'Mountain':
+                                  iconComponent = <LuMountain size={24} />;
+                                  break;
+                                case 'Waterfalls':
+                                  iconComponent = <LuDroplets size={24} />;
+                                  break;
+                                case 'Trails':
+                                  iconComponent = <LuTrainTrack size={24} />;
+                                  break;
+                                case 'Camping':
+                                  iconComponent = <LuFlameKindling size={24} />;
+                                  break;
+                                case 'Nature Walks':
+                                  iconComponent = <LuWheat size={24} />;
+                                  break;
+                                case 'Lodging':
+                                  iconComponent = <LuHotel size={24} />;
+                                  break;
+                                default:
+                                  iconComponent = <LuMountain size={24} />;
+                              }
+
+                              return (
+                                <div
+                                  key={type}
+                                  role="checkbox"
+                                  aria-checked={selectedTypes.includes(type)}
+                                  className={`property-type-card ${selectedTypes.includes(type) ? 'selected' : ''}`}
+                                  onClick={() => toggleTypeSelection(type)}
+                                  tabIndex="0"
+                                  aria-label={`Select ${type}`}
+                                >
+                                  <div className="place-icon">
+                                    {iconComponent}
+                                  </div>
+                                  <span>{type}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </AccordionContent>
                       </AccordionItem>
@@ -427,6 +491,9 @@ const App: React.FC = () => {
                                 key={rating}
                                 className={`rating-pill ${selectedRatings.includes(rating) ? 'selected' : ''}`}
                                 onClick={() => toggleRatingSelection(rating)}
+                                role="button"
+                                tabIndex="0"
+                                aria-label={`Select rating ${rating}`}
                               >
                                 {rating}
                               </div>
@@ -436,13 +503,13 @@ const App: React.FC = () => {
                       </AccordionItem>
                     </AccordionRoot>
                   </div>
-                    <button className="clear-button" onClick={() => {
-                      setSelectedTypes([]);
-                      setSelectedRatings([]);
-                      setShowOnlyFavorites(false);
-                    }}>
-                      Clear Filters
-                    </button>
+                  <button className="clear-button" onClick={() => {
+                    setSelectedTypes([]);
+                    setSelectedRatings([]);
+                    setShowOnlyFavorites(false);
+                  }} aria-label="Clear all filters">
+                    Clear Filters
+                  </button>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -450,14 +517,13 @@ const App: React.FC = () => {
         </div>
 
         <div className="listing-map-container">
-          <h1 className="page-title">{title}</h1>
+          <h1 className="page-title" aria-label="Page title: {title}">{title}</h1>
           <div className="listings">
-
             {filteredLocations.length === 0 ? (
-              <div className="no-results">No hiking places match your filters.</div>
+              <div className="no-results" aria-live="polite">No hiking places match your filters.</div>
             ) : (
               filteredLocations.map(place => (
-                <div key={place.id} className="listing-card">
+                <div key={place.id} className="listing-card" role="region" aria-labelledby={`place-title-${place.id}`}>
                   <div className="listing-image-container">
                     <div className="card-image-carousel">
                       {place.imageUrls && place.imageUrls.length > 0 && (
@@ -469,36 +535,38 @@ const App: React.FC = () => {
                             nextEl: '.swiper-button-next',
                           }}
                           modules={[Navigation]}
+                          aria-label={`Image carousel for ${place.name}`}
                         >
                           {place.imageUrls.map((url, index) => (
                             <SwiperSlide key={index}>
-                              <img src={url} alt={`Imagen ${index}`} className="carousel-image" />
+                              <img src={url} alt={`Image ${index + 1} of ${place.name}`} className="carousel-image" />
                             </SwiperSlide>
                           ))}
-                          <div className="swiper-button-prev text-blue-500"></div>
-                          <div className="swiper-button-next text-blue-500"></div>
+                          <div className="swiper-button-prev text-blue-500" aria-label="Previous image"></div>
+                          <div className="swiper-button-next text-blue-500" aria-label="Next image"></div>
                         </Swiper>
                       )}
                     </div>
                   </div>
                   <div className="listing-content">
                     <div className="listing-header">
-                      <h2>{place.name}</h2>
+                      <h2 id={`place-title-${place.id}`}>{place.name}</h2>
                       <div className="header-actions">
                         <button
                           className={`favorite-button ${place.isFavorite ? 'active' : ''}`}
                           onClick={() => handleToggleFavorite(place.id)}
+                          aria-label={place.isFavorite ? `Remove ${place.name} from favorites` : `Add ${place.name} to favorites`}
                         >
                           <LuHeart size={20} />
                         </button>
-                        <button className="remove-button" onClick={() => handleRemoveLocation(place.id)}>
+                        <button className="remove-button" onClick={() => handleRemoveLocation(place.id)} aria-label={`Remove ${place.name} from the list`}>
                           <LuCircleX size={20} />
                         </button>
                       </div>
                     </div>
                     <p className="location">
                       <LuMapPin size={14} />
-                      <span>{place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}</span>
+                      <span aria-label={`Location coordinates: ${place.latitude.toFixed(4)}, ${place.longitude.toFixed(4)}`}>{place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}</span>
                     </p>
                     {place.description && <p className="description">{place.description}</p>}
                   </div>
@@ -508,9 +576,8 @@ const App: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="map-container">
-        <Map
-          locations={mapLocations} />
+      <div className="map-container" role="region" aria-label="Map displaying hiking locations">
+        <Map locations={mapLocations} />
       </div>
     </div>
   );
